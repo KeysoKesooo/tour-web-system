@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  password  String
+  role      Role      @default(STAFF)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Session   Session[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Trip {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  location    String
+  price       Float
+  capacity    Int
+  startDate   DateTime
+  endDate     DateTime
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  fullName   String
+  email      String
+  phone      String
+  numPersons Int
+  message    String?
+  status     BookingStatus @default(PENDING)
+  trip       Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId     String
+  createdAt  DateTime      @default(now())
+  amountPaid Float         @default(0)
+}
+
+model Analytics {
+  id             String   @id @default(uuid())
+  date           DateTime @unique
+  totalTrips     Int      @default(0)
+  totalBookings  Int      @default(0)
+  totalRevenue   Float    @default(0)
+  mostBookedTrip String?
+  createdAt      DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}

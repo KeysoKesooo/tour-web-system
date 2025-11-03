@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Trip" ADD COLUMN     "capacity" INTEGER NOT NULL DEFAULT 0;

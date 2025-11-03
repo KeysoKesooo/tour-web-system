@@ -1,0 +1,1 @@
+declare module "@lucia-auth/adapter-prisma";

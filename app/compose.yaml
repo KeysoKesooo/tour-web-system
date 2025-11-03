@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tour-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: tour
+      POSTGRES_PASSWORD: tour123
+      POSTGRES_DB: tourdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Uncomment when ready to use Docker for Next.js
+  # nextjs:
+  #   build: .
+  #   container_name: inventory-app
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     DATABASE_URL: postgresql://inventory:inventory123@postgres:5432/inventorydb?schema=public
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  postgres-data:
