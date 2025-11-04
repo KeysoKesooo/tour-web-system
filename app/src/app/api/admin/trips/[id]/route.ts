@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TripService } from "@/core/services/TripService";
-import { UpdateTripDTO } from "@/core/dto/trip.dto"; // ✅ import your DTO
+import { UpdateTripDTO } from "@/core/dto/trip.dto";
 
 const service = new TripService();
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const trip = await service.getTripById(params.id);
+  const { id } = await context.params; // ✅ await params
+  const trip = await service.getTripById(id);
+
   return NextResponse.json({
     id: trip.id,
     title: trip.title,
@@ -24,15 +26,14 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params; // ✅ await params
   try {
     const json = await req.json();
-
-    // ✅ Validate + transform data
     const validatedData = UpdateTripDTO.parse(json);
 
-    const trip = await service.updateTrip(params.id, validatedData);
+    const trip = await service.updateTrip(id, validatedData);
 
     return NextResponse.json({
       id: trip.id,
@@ -51,8 +52,9 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  await service.deleteTrip(params.id);
+  const { id } = await context.params; // ✅ await params
+  await service.deleteTrip(id);
   return NextResponse.json({ message: "Trip deleted" });
 }

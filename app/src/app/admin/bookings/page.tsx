@@ -1,192 +1,74 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Search, Calendar, Mail, Phone, User, MapPin, CheckCircle, Clock, XCircle, DollarSign } from "lucide-react";
-import { IBooking, ITrip } from "@/types";
+import { useBooks } from "@/hooks/UseBooks";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  Mail,
+  Phone,
+  User,
+  MapPin,
+  CheckCircle,
+  Clock,
+  XCircle,
+  DollarSign,
+  Search,
+} from "lucide-react";
 
 
 export default function AdminBookingsPage() {
-  const [bookings, setBookings] = useState<IBooking[]>([]);
-  const [trips, setTrips] = useState<ITrip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [showModal, setShowModal] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<IBooking | null>(null);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    numPersons: "",
-    message: "",
-    tripId: "",
-    status: "PENDING" as "PENDING" | "CONFIRMED" | "CANCELLED",
-    amountPaid: "",
-  });
+  const {
+    bookings,
+    trips,
+    loading,
+    searchTerm,
+    statusFilter,
+    showModal,
+    editingBooking,
+    formData,
+    openModal,
+    closeModal,
+    getStatusBadge,
+    filteredBookings,
+    stats,
+    setSearchTerm,
+    setStatusFilter,
+    handleSubmit,
+    handleDelete,
+    setFormData,
+  } = useBooks();
 
-  useEffect(() => {
-    fetchBookings();
-    fetchTrips();
-  }, []);
-
-  const fetchBookings = async () => {
-    try {
-      const res = await fetch("/api/admin/bookings");
-      const data = await res.json();
-      
-      // Fetch trip details for each booking
-      const bookingsWithTrips = await Promise.all(
-        data.map(async (booking: IBooking) => {
-          try {
-            const tripRes = await fetch(`/api/admin/trips/${booking.tripId}`);
-            const trip = await tripRes.json();
-            return { ...booking, trip };
-          } catch {
-            return booking;
-          }
-        })
-      );
-      
-      setBookings(bookingsWithTrips);
-    } catch (error) {
-      console.error("Failed to fetch bookings:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTrips = async () => {
-    try {
-      const res = await fetch("/api/admin/trips");
-      const data = await res.json();
-      setTrips(data);
-    } catch (error) {
-      console.error("Failed to fetch trips:", error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const payload = {
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      numPersons: parseInt(formData.numPersons),
-      message: formData.message || undefined,
-      tripId: formData.tripId,
-      status: formData.status,
-      amountPaid: parseFloat(formData.amountPaid),
-    };
-
-    try {
-      if (editingBooking) {
-        await fetch(`/api/admin/bookings/${editingBooking.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: formData.status }),
-        });
-      } else {
-        await fetch("/api/admin/bookings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
-
-      fetchBookings();
-      closeModal();
-    } catch (error) {
-      console.error("Failed to save booking:", error);
-      alert("Failed to save booking. Please check the console for details.");
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this booking?")) return;
-
-    try {
-      await fetch(`/api/admin/bookings/${id}`, { method: "DELETE" });
-      fetchBookings();
-    } catch (error) {
-      console.error("Failed to delete booking:", error);
-    }
-  };
-
-  const openModal = (booking?: IBooking) => {
-    if (booking) {
-      setEditingBooking(booking);
-      setFormData({
-        fullName: booking.fullName,
-        email: booking.email,
-        phone: booking.phone,
-        numPersons: booking.numPersons.toString(),
-        message: booking.message || "",
-        tripId: booking.tripId,
-        status: booking.status,
-        amountPaid: booking.amountPaid.toString(),
-      });
-    } else {
-      setEditingBooking(null);
-      setFormData({
-        fullName: "",
-        email: "",
-        phone: "",
-        numPersons: "1",
-        message: "",
-        tripId: "",
-        status: "PENDING",
-        amountPaid: "",
-      });
-    }
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingBooking(null);
-  };
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      PENDING: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      CONFIRMED: "bg-green-100 text-green-800 border-green-200",
-      CANCELLED: "bg-red-100 text-red-800 border-red-200",
-    };
-
-    const icons = {
-      PENDING: <Clock className="w-3 h-3" />,
-      CONFIRMED: <CheckCircle className="w-3 h-3" />,
-      CANCELLED: <XCircle className="w-3 h-3" />,
-    };
-
-    return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${styles[status as keyof typeof styles]}`}>
-        {icons[status as keyof typeof icons]}
-        {status}
-      </span>
+  // Calculate remaining seats for a trip
+  const getRemainingSeats = (tripId: string) => {
+    const trip = trips.find(t => t.id === tripId);
+    if (!trip) return 0;
+    
+    // Count confirmed bookings for this trip
+    const confirmedBookings = bookings.filter(
+      (b) => b.tripId === tripId && b.status === "CONFIRMED"
     );
+    const totalBooked = confirmedBookings.reduce(
+      (sum, b) => sum + b.numPersons,
+      0
+    );
+    
+    return trip.capacity - totalBooked;
   };
 
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesSearch =
-      booking.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.trip?.title.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = statusFilter === "ALL" || booking.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const stats = {
-    total: bookings.length,
-    pending: bookings.filter((b) => b.status === "PENDING").length,
-    confirmed: bookings.filter((b) => b.status === "CONFIRMED").length,
-    cancelled: bookings.filter((b) => b.status === "CANCELLED").length,
-    revenue: bookings
-      .filter((b) => b.status === "CONFIRMED")
-      .reduce((sum, b) => sum + b.amountPaid, 0),
+  // Validate number of persons
+  const validateNumPersons = (tripId: string, numPersons: string) => {
+    if (!tripId || !numPersons) return null;
+    
+    const remaining = getRemainingSeats(tripId);
+    const requested = parseInt(numPersons) || 0;
+    
+    if (requested > remaining) {
+      return `Cannot book more than ${remaining} person(s). Only ${remaining} seat(s) remaining.`;
+    }
+    
+    return null;
   };
 
   if (loading) {
@@ -280,16 +162,22 @@ export default function AdminBookingsPage() {
                     Trip
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Persons
+                    Price
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
+                    Trip Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Persons
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
+                    Amount Paid
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date Created
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -298,7 +186,7 @@ export default function AdminBookingsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredBookings.map((booking) => (
-                  <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={booking.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -323,19 +211,29 @@ export default function AdminBookingsPage() {
                         <MapPin className="w-3 h-3" />
                         {booking.trip?.location || "N/A"}
                       </div>
-                      <div className="text-sm text-gray-500 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {booking.trip?.startDate ? new Date(booking.trip.startDate).toLocaleDateString() : "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 font-medium">
+                        ${booking.trip?.price ? booking.trip.price.toFixed(2) : "0.00"}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">per person</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 font-medium flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {booking.trip?.startDate && booking.trip?.endDate
+                          ? `${new Date(booking.trip.startDate).toLocaleDateString()} - ${new Date(booking.trip.endDate).toLocaleDateString()}`
+                          : "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 font-medium">{booking.numPersons}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">${booking.amountPaid ? booking.amountPaid.toFixed(2) : "0.00"}</div>
+                      {getStatusBadge(booking.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(booking.status)}
+                      <div className="text-sm font-semibold text-gray-900">${booking.amountPaid ? booking.amountPaid.toFixed(2) : "0.00"}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(booking.createdAt).toLocaleDateString()}
@@ -377,7 +275,20 @@ export default function AdminBookingsPage() {
                 {editingBooking ? "Edit Booking Status" : "Create New Booking"}
               </h2>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!editingBooking) {
+                    const validationError = validateNumPersons(formData.tripId, formData.numPersons);
+                    if (validationError) {
+                      alert(validationError);
+                      return;
+                    }
+                  }
+                  handleSubmit(e);
+                }} 
+                className="space-y-4"
+              >
                 {!editingBooking && (
                   <>
                     <div>
@@ -404,6 +315,12 @@ export default function AdminBookingsPage() {
                           </option>
                         ))}
                       </select>
+                      {formData.tripId && (
+                        <p className="mt-1 text-sm text-gray-600">
+                          Capacity: {trips.find(t => t.id === formData.tripId)?.capacity || 0} seats | 
+                          Available: {getRemainingSeats(formData.tripId)} seats
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -435,15 +352,22 @@ export default function AdminBookingsPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Phone *
+                          Phone * (min 12 characters)
                         </label>
                         <input
                           type="tel"
                           required
+                          minLength={12}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="Enter phone number (min 12 characters)"
                         />
+                        {formData.phone && formData.phone.length < 12 && (
+                          <p className="mt-1 text-sm text-red-600">
+                            Phone number must be at least 12 characters (current: {formData.phone.length})
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -455,18 +379,34 @@ export default function AdminBookingsPage() {
                         <input
                           type="number"
                           min="1"
+                          max={formData.tripId ? getRemainingSeats(formData.tripId) : undefined}
                           required
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            validateNumPersons(formData.tripId, formData.numPersons)
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
                           value={formData.numPersons}
                           onChange={(e) => {
                             const selectedTrip = trips.find(t => t.id === formData.tripId);
+                            const numPersonsValue = e.target.value;
                             setFormData({
                               ...formData,
-                              numPersons: e.target.value,
-                              amountPaid: selectedTrip ? (selectedTrip.price * parseInt(e.target.value || "1")).toString() : formData.amountPaid,
+                              numPersons: numPersonsValue,
+                              amountPaid: selectedTrip ? (selectedTrip.price * parseInt(numPersonsValue || "1")).toString() : formData.amountPaid,
                             });
                           }}
                         />
+                        {validateNumPersons(formData.tripId, formData.numPersons) && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {validateNumPersons(formData.tripId, formData.numPersons)}
+                          </p>
+                        )}
+                        {formData.tripId && !validateNumPersons(formData.tripId, formData.numPersons) && formData.numPersons && (
+                          <p className="mt-1 text-sm text-gray-500">
+                            {getRemainingSeats(formData.tripId) - parseInt(formData.numPersons || "0")} seat(s) remaining after this booking
+                          </p>
+                        )}
                       </div>
 
                       <div>

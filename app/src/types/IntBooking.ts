@@ -17,6 +17,7 @@ export interface IBooking {
   status: BookingStatus;
   tripId: string;
   amountPaid: number;
+  readAt?: Date | null;
   trip?: ITrip;
 }
 

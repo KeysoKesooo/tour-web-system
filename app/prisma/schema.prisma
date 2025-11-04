@@ -50,10 +50,11 @@ model Booking {
   numPersons Int
   message    String?
   status     BookingStatus @default(PENDING)
-  trip       Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  trip       Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)                                                                     
   tripId     String
   createdAt  DateTime      @default(now())
   amountPaid Float         @default(0)
+  readAt     DateTime?
 }
 
 model Analytics {

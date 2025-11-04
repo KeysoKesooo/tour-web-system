@@ -19,3 +19,15 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+
+/* Highlight unread bookings */
+.bg-yellow-50 {
+  background-color: #fffae6;
+  transition: background-color 0.3s;
+}
+
+/* Remove highlight on hover */
+tr:hover.bg-yellow-50 {
+  background-color: white;
+}

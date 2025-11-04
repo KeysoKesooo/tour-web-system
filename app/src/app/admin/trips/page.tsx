@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   Plus,
   Edit,
@@ -11,131 +10,34 @@ import {
   Users,
   DollarSign,
 } from "lucide-react";
-import { ITrip } from "@/types";
+import { useTrips } from "@/hooks/UseTrips";
+import { useBooks } from "@/hooks/UseBooks";
 
-export default function TripsPage() {
-  const [trips, setTrips] = useState<ITrip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [editingTrip, setEditingTrip] = useState<ITrip | null>(null);
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    location: "",
-    price: "",
-    capacity: "",
-    startDate: "",
-    endDate: "",
-    imageUrl: "",
-  });
+export default function AdminTripsPage() {
+  const {
+    trips,
+    loading,
+    searchTerm,
+    showModal,
+    editingTrip,
+    formData,
+    setFormData,
+    openModal,
+    closeModal,
+    handleSubmit,
+    handleDelete,
+    setSearchTerm,
+    filteredTrips,
+  } = useTrips();
 
-  useEffect(() => {
-    fetchTrips();
-  }, []);
+  const { bookings } = useBooks();
 
-  const fetchTrips = async () => {
-    try {
-      const res = await fetch("/api/admin/trips");
-      const data = await res.json();
-      setTrips(data);
-    } catch (error) {
-      console.error("Failed to fetch trips:", error);
-    } finally {
-      setLoading(false);
-    }
+  // Calculate booked persons for each trip
+  const getBookedCount = (tripId: string) => {
+    return bookings
+      .filter((booking) => booking.tripId === tripId && booking.status !== "CANCELLED")
+      .reduce((total, booking) => total + booking.numPersons, 0);
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const payload = {
-      title: formData.title,
-      description: formData.description,
-      location: formData.location,
-      price: parseFloat(formData.price),
-      capacity: parseInt(formData.capacity),
-      startDate: new Date(formData.startDate).toISOString(),
-      endDate: new Date(formData.endDate).toISOString(),
-      imageUrl: formData.imageUrl || undefined,
-    };
-
-    try {
-      if (editingTrip) {
-        await fetch(`/api/admin/trips/${editingTrip.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        await fetch("/api/admin/trips", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
-
-      fetchTrips();
-      closeModal();
-    } catch (error) {
-      console.error("Failed to save trip:", error);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this trip?")) return;
-
-    try {
-      await fetch(`/api/admin/trips/${id}`, { method: "DELETE" });
-      fetchTrips();
-    } catch (error) {
-      console.error("Failed to delete trip:", error);
-    }
-  };
-
-  const openModal = (trip?: ITrip) => {
-    if (trip) {
-      setEditingTrip(trip);
-      setFormData({
-        title: trip.title,
-        description: trip.description,
-        location: trip.location,
-        price: trip.price.toString(),
-        capacity: trip.capacity.toString(),
-        startDate: trip.startDate
-          ? new Date(trip.startDate).toISOString().split("T")[0]
-          : "",
-        endDate: trip.endDate
-          ? new Date(trip.endDate).toISOString().split("T")[0]
-          : "",
-        imageUrl: trip.imageUrl || "",
-      });
-    } else {
-      setEditingTrip(null);
-      setFormData({
-        title: "",
-        description: "",
-        location: "",
-        price: "",
-        capacity: "",
-        startDate: "",
-        endDate: "",
-        imageUrl: "",
-      });
-    }
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingTrip(null);
-  };
-
-  const filteredTrips = trips.filter(
-    (trip) =>
-      trip.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (loading) {
     return (
@@ -216,7 +118,7 @@ export default function TripsPage() {
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Users className="w-4 h-4" />
                     <span>
-                      {trip.remainingSeats} / {trip.capacity} seats available
+                      {getBookedCount(trip.id)} / {trip.capacity} booked
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
