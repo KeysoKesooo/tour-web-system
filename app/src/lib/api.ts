@@ -3,18 +3,14 @@ import { ApiClient, ApiError } from "./apiClient";
 
 // Initialize API client (use environment variable or default)
 const api = new ApiClient(
-  typeof window !== "undefined" 
-    ? window.location.origin 
+  typeof window !== "undefined"
+    ? window.location.origin
     : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 );
 
 // ==================== AUTH METHODS ====================
 
-export async function register(
-  name: string,
-  email: string,
-  password: string
-) {
+export async function register(name: string, email: string, password: string) {
   try {
     const response = await api.post("/api/auth/register", {
       name,
@@ -87,17 +83,20 @@ export async function adminCreateUser(userData: {
   name: string;
   email: string;
   password: string;
-  role: "admin" | "staff" | "user";
+  role: "admin" | "staff";
 }) {
   const response = await api.post("/api/users", userData);
   return response.data;
 }
 
-export async function updateUser(id: string, userData: Partial<{
-  name: string;
-  email: string;
-  role: "admin" | "staff" | "user";
-}>) {
+export async function updateUser(
+  id: string,
+  userData: Partial<{
+    name: string;
+    email: string;
+    role: "admin" | "staff";
+  }>
+) {
   const response = await api.put(`/api/users/${id}`, userData);
   return response.data;
 }

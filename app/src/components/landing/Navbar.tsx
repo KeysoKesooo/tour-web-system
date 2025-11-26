@@ -1,112 +1,90 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
+import React, { useState, useEffect, useRef } from 'react';
 
-export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [showNavbar, setShowNavbar] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+// The component now manages its own visibility state based on scroll direction
+const Navbar: React.FC = () => {
+  const navItems = ['Home', 'Book-Page', 'Value-Props', 'Reviews', 'Contact'];
+  const [isVisible, setIsVisible] = useState(true);
+  const prevScrollY = useRef(0);
 
-  const toggleMenu = () => setIsOpen(!isOpen);
-
-  // Hide navbar on scroll down, show on scroll up
+  // Scroll detection logic
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > lastScrollY && window.scrollY > 50) {
-        setShowNavbar(false);
+      const currentScrollY = window.scrollY;
+      const isScrollingDown = currentScrollY > prevScrollY.current;
+      const isScrollingPastTop = currentScrollY > 100; // Only start hiding after scrolling 100px
+
+      if (isScrollingPastTop) {
+        // Scrolling down past the top section and currently visible -> Hide
+        if (isScrollingDown && isVisible) {
+          setIsVisible(false);
+        } 
+        // Scrolling up and currently hidden -> Show
+        else if (!isScrollingDown && !isVisible) {
+          setIsVisible(true);
+        }
       } else {
-        setShowNavbar(true);
+        // Always show the navbar when close to the top of the page
+        if (!isVisible) {
+          setIsVisible(true);
+        }
       }
-      setLastScrollY(window.scrollY);
+
+      // Update the previous scroll position
+      prevScrollY.current = currentScrollY;
     };
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, [isVisible]); // Depend on isVisible to re-run effect when state changes
 
-  // Enable smooth scroll globally
-  useEffect(() => {
-    document.documentElement.style.scrollBehavior = 'smooth';
-  }, []);
-
-  const links = [
-    { name: 'Home', href: '#' },
-    { name: 'Book', href: '#book' },
-    { name: 'Features', href: '#features' },
-    { name: 'Pricing', href: '#pricing' },
-    { name: 'Reviews', href: '#reviews' },
-    { name: 'Contact', href: '#cta' },
-  ];
+  // Utility function to clean up section IDs for display
+  const cleanItemName = (item: string) => item.replace('-', ' ').replace('home', 'Top');
 
   return (
-    <motion.nav
-      initial={{ y: 0 }}
-      animate={{ y: showNavbar ? 0 : -100 }}
-      transition={{ duration: 0.4 }}
-      className="fixed top-0 left-0 right-0 z-50 flex justify-center"
+    // Uses 'transform -translate-y-full' when hidden and 'translate-y-0' when visible
+    <header 
+      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-500 ease-in-out py-4 border-b border-slate-700/50 
+        bg-slate-900/95 shadow-2xl shadow-teal-500/10 
+        ${isVisible 
+          ? 'transform translate-y-0' // Visible
+          : 'transform -translate-y-full' // Hidden (moves up off the screen)
+        }`}
     >
-      <div
-        className="w-full max-w-6xl mx-4 mt-4 px-6 py-3 rounded-2xl shadow-lg 
-        bg-white/30 backdrop-blur-xl border border-white/20 
-        transition-all duration-300"
-      >
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="Tourify Logo"
-              className="h-10 md:h-12 select-none"
-            />
-          </div>
+        {/* Content wrapper with fixed max-width for the "not full-width" appearance */}
+        <div className="container mx-auto px-6 flex justify-between items-center max-w-6xl">
+            {/* Logo/Brand */}
+            <a href="#home" className="text-3xl sm:text-4xl font-black text-white tracking-widest transition duration-300 hover:text-teal-400">
+                Aethel
+            </a>
+            
+            {/* Navigation Links (Hidden on small screens) */}
+            <nav className="hidden lg:flex space-x-10 text-base font-semibold">
+                {navItems.map((item) => (
+                    <a 
+                        key={item} 
+                        href={`#${item.toLowerCase().replace('-', '')}`} 
+                        className="text-gray-300 hover:text-teal-400 transition duration-300 relative group uppercase tracking-wider"
+                    >
+                        {cleanItemName(item)}
+                        {/* Underline hover effect */}
+                        <span className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-teal-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center"></span>
+                    </a>
+                ))}
+            </nav>
 
-          {/* Desktop Links */}
-          <div className="hidden md:flex gap-6 ml-auto">
-            {links.map((link, i) => (
-              <motion.a
-                key={i}
-                href={link.href}
-                whileHover={{ scale: 1.05, color: '#2F855A' }}
-                className="font-semibold text-gray-800 transition-colors hover:text-green-700"
-              >
-                {link.name}
-              </motion.a>
-            ))}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <div className="md:hidden ml-auto">
-            <button
-              onClick={toggleMenu}
-              className="focus:outline-none text-2xl text-gray-800"
+            {/* CTA Button */}
+            <a 
+                href="#bookpage" 
+                className="hidden md:inline-flex px-5 py-2 text-sm font-bold text-teal-400 border border-teal-400 rounded-full 
+                           hover:bg-teal-400 hover:text-slate-900 transition duration-300 transform hover:scale-105 shadow-md"
             >
-              ☰
-            </button>
-          </div>
+                Book Now
+            </a>
         </div>
-
-        {/* Mobile Menu */}
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col items-start gap-3 mt-4 md:hidden"
-          >
-            {links.map((link, i) => (
-              <a
-                key={i}
-                href={link.href}
-                className="font-semibold text-green-900 hover:text-green-primary transition"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.name}
-              </a>
-            ))}
-          </motion.div>
-        )}
-      </div>
-    </motion.nav>
+    </header>
   );
-}
+};
+
+export default Navbar;

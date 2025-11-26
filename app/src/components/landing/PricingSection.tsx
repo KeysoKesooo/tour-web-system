@@ -1,39 +1,109 @@
-'use client';
-import { motion } from 'framer-motion';
+"use client";
 
-const plans = [
-  { title: "Basic", price: "$99", features: ["1 Tour", "Email Support", "Basic Guide"] },
-  { title: "Standard", price: "$199", features: ["3 Tours", "24/7 Support", "Premium Guide"] },
-  { title: "Premium", price: "$299", features: ["All Tours", "Personal Guide", "VIP Support"] },
-];
+import React, { useState, useEffect } from 'react';
+import { destinations, ArrowRight, ArrowLeft, CheckCircle, Destination } from '../../lib/types_and_data';
 
-export default function PriceSection() {
+const PricingSection: React.FC = () => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const selectedDestination: Destination = destinations[selectedIndex];
+  
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Logic to navigate destinations
+  const nextDestination = () => {
+    setSelectedIndex(prev => (prev + 1) % destinations.length);
+  };
+  const prevDestination = () => {
+    setSelectedIndex(prev => (prev - 1 + destinations.length) % destinations.length);
+  };
+
+  // Handle arrow key navigation to cycle through countries
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        nextDestination();
+      } else if (e.key === 'ArrowLeft') {
+        prevDestination();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIndex]);
+
+  const handleBooking = () => {
+    setIsSubmitted(true);
+    // Placeholder for actual booking logic
+    setTimeout(() => setIsSubmitted(false), 4000);
+  };
+
   return (
-    <section className="py-20 bg-green-light text-green-900 px-6 md:px-20">
-      <h2 className="text-4xl font-bold text-center mb-12">Pricing Plans</h2>
-      <div className="grid md:grid-cols-3 gap-8">
-        {plans.map((plan, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            viewport={{ once: true, amount: 0.3 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: i * 0.2 }}
-            className="bg-cream-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition flex flex-col items-center"
-          >
-            <h3 className="text-2xl font-semibold mb-4">{plan.title}</h3>
-            <p className="text-3xl font-bold mb-6">{plan.price}</p>
-            <ul className="mb-6 space-y-2">
-              {plan.features.map((feature, idx) => (
-                <li key={idx} className="text-gray-700">{feature}</li>
-              ))}
-            </ul>
-            <button className="bg-green-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-800 transition">
-              Choose Plan
+    <section id="bookpage" className={`py-20 md:py-32 transition-colors duration-500 ${selectedDestination.themeColor}`}>
+      <div className="container mx-auto px-6 max-w-4xl text-white">
+        <h2 className="text-5xl font-extrabold text-center mb-16">
+          Where Will Your Next Journey Begin?
+        </h2>
+
+        {/* Selected Destination Card and Booking Details */}
+        <div className="p-8 md:p-12 bg-black/30 backdrop-blur-md rounded-2xl shadow-2xl relative">
+            <h3 className="text-5xl md:text-6xl font-extrabold mb-4 transition-all duration-300 transform scale-100 text-center">
+                {selectedDestination.icon} {selectedDestination.name}
+            </h3>
+            <p className="text-xl md:text-2xl text-white/90 italic mb-6 text-center">
+                "{selectedDestination.tagline}"
+            </p>
+
+            <div className="text-center text-2xl font-extrabold mt-8 mb-6">
+              Starting Price from: 
+              <span className="text-white text-5xl font-mono ml-3">
+                ${selectedDestination.price.toLocaleString()}
+              </span>
+            </div>
+
+            <button
+              onClick={handleBooking}
+              className="w-full max-w-sm mx-auto py-4 bg-white text-gray-800 font-bold rounded-lg shadow-xl hover:bg-gray-100 transition duration-300 flex items-center justify-center relative overflow-hidden text-xl"
+              disabled={isSubmitted}
+            >
+              {isSubmitted ? (
+                <>
+                  <CheckCircle className="w-6 h-6 mr-2 animate-pulse" />
+                  Trip to {selectedDestination.name} Reserved!
+                </>
+              ) : (
+                <>
+                  View Available Tours
+                  <ArrowRight className="w-6 h-6 ml-2" />
+                </>
+              )}
             </button>
-          </motion.div>
-        ))}
+          
+          {/* Keyboard Hint */}
+          <div className="text-sm text-white/70 mt-8 text-center">
+            Use <span className="font-mono px-1 py-0.5 rounded bg-black/50">{'<'}</span> and <span className="font-mono px-1 py-0.5 rounded bg-black/50">{'>'}</span> keys to cycle destinations.
+          </div>
+        </div>
+        
+        {/* Visual Navigation Arrows */}
+        <div className="flex justify-between mt-8">
+            <button
+                onClick={prevDestination}
+                className="flex items-center text-white/80 hover:text-white transition-colors duration-300 group"
+            >
+                <ArrowLeft className="w-8 h-8 mr-2 group-hover:-translate-x-1 transition-transform" />
+                <span className="hidden sm:inline">Previous Destination</span>
+            </button>
+            <button
+                onClick={nextDestination}
+                className="flex items-center text-white/80 hover:text-white transition-colors duration-300 group"
+            >
+                <span className="hidden sm:inline">Next Destination</span>
+                <ArrowRight className="w-8 h-8 ml-2 group-hover:translate-x-1 transition-transform" />
+            </button>
+        </div>
       </div>
     </section>
   );
-}
+};
+
+export default PricingSection;

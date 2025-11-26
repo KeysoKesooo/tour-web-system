@@ -1,47 +1,33 @@
-import { NextRequest } from "next/server";
-import {
-  getAuthenticatedUser,
-  hasRole,
-  unauthorizedResponse,
-  forbiddenResponse,
-} from "@/lib/authUtils";
+import { NextRequest, NextResponse } from "next/server";
 import { UserService } from "@/core/services/UserService";
-import { CreateUserDTO } from "@/dto/user.dto";
+import { CreateUserDTO } from "@/core/dto/user.dto";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 const userService = new UserService();
 
-// GET /api/users - Admin only
 export async function GET(req: NextRequest) {
-  const auth = await getAuthenticatedUser(req);
-  if (!auth) return unauthorizedResponse();
-
-  if (!hasRole(auth.user, ["admin"])) {
-    return forbiddenResponse("Admins only");
-  }
+  const auth = await requireAdmin(req);
+  if (!auth) return auth; // returns the error response
 
   try {
     const users = await userService.getAllUsers();
-    return Response.json({ users });
-  } catch (error: any) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ users });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
-// POST /api/users - Admin only (Admin can create users with specific roles)
 export async function POST(req: NextRequest) {
-  const auth = await getAuthenticatedUser(req);
-  if (!auth) return unauthorizedResponse();
-
-  if (!hasRole(auth.user, ["admin"])) {
-    return forbiddenResponse("Admins only");
-  }
+  const auth = await requireAdmin(req);
+  if (!auth) return auth;
 
   try {
     const body = await req.json();
     const validated = CreateUserDTO.parse(body);
     const newUser = await userService.createUser(validated);
-    return Response.json({ user: newUser }, { status: 201 });
-  } catch (error: any) {
-    return Response.json({ error: error.message }, { status: 400 });
+
+    return NextResponse.json({ user: newUser }, { status: 201 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 }

@@ -4,15 +4,11 @@ export class RoleManager {
   constructor(private role: Role) {}
 
   isAdmin() {
-    return this.role === "admin";
+    return this.role === "ADMIN";
   }
 
   isStaff() {
-    return this.role === "staff";
-  }
-
-  isUser() {
-    return this.role === "user";
+    return this.role === "STAFF";
   }
 
   canEditUsers() {

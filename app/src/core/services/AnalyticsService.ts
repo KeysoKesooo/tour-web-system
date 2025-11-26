@@ -1,71 +1,58 @@
-import { prisma } from "@/lib/prisma";
+import { AnalyticsRepository } from "@/core/repositories/analyticsrepository";
 import { TripModel } from "@/core/models/Trip.model";
 
 export class AnalyticsService {
-  // Get latest dashboard analytics
+  private repo = new AnalyticsRepository();
+
   async getDashboardAnalytics() {
-    const analytics = await prisma.analytics.findMany({
-      orderBy: { date: "desc" },
-      take: 1,
-    });
-
-    const latest = analytics[0] ?? {
-      totalBookings: 0,
-      totalRevenue: 0,
-      totalTrips: 0,
-      mostBookedTrip: null,
-    };
-
-    return latest;
+    const latest = await this.repo.findLatest();
+    return (
+      latest ?? {
+        totalBookings: 0,
+        totalRevenue: 0,
+        totalTrips: 0,
+        mostBookedTrip: null,
+        ongoingTripsToday: 0,
+      }
+    );
   }
 
-  // Total trips in system
   async getTotalTrips(): Promise<number> {
-    return prisma.trip.count();
+    return this.repo.countTrips();
   }
 
-  // Get the most booked trip
   async getMostBookedTrip(): Promise<TripModel | null> {
-    const bookings = await prisma.booking.groupBy({
-      by: ["tripId"],
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 1,
-    });
-
-    if (!bookings || bookings.length === 0) return null;
-
-    const trip = await prisma.trip.findUnique({ where: { id: bookings[0].tripId } });
+    const trip = await this.repo.findMostBookedTrip();
     if (!trip) return null;
-
     return new TripModel(trip);
   }
 
-  // --- helpers for booking updates ---
+  async getOngoingTripsToday(): Promise<number> {
+    return this.repo.countOngoingTrips(new Date());
+  }
+
   async incrementAnalyticsForBooking(amount: number, createdAt: Date) {
     const dateKey = createdAt.toISOString().slice(0, 10);
-    await prisma.analytics.upsert({
-      where: { date: new Date(dateKey) },
-      update: {
-        totalBookings: { increment: 1 },
-        totalRevenue: { increment: amount },
-      },
-      create: {
-        date: new Date(dateKey),
-        totalBookings: 1,
-        totalRevenue: amount,
-      },
-    });
+    await this.repo.upsertAnalytics(new Date(dateKey), 1, amount);
   }
 
   async decrementAnalyticsForCancelledBooking(amount: number, createdAt: Date) {
     const dateKey = createdAt.toISOString().slice(0, 10);
-    await prisma.analytics.updateMany({
-      where: { date: new Date(dateKey) },
-      data: {
-        totalBookings: { decrement: 1 },
-        totalRevenue: { decrement: amount },
-      },
-    });
+    await this.repo.upsertAnalytics(new Date(dateKey), -1, -amount);
+  }
+
+  // Optional: fetch all dashboard data in one call
+  async getDashboardData() {
+    const latest = await this.getDashboardAnalytics();
+    const totalTrips = await this.getTotalTrips();
+    const mostBookedTrip = await this.getMostBookedTrip();
+    const ongoingTripsToday = await this.getOngoingTripsToday();
+
+    return {
+      latest,
+      totalTrips,
+      mostBookedTrip,
+      ongoingTripsToday,
+    };
   }
 }
