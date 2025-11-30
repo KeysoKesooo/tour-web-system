@@ -71,13 +71,18 @@ const TripDetailPage: React.FC = () => {
                 This trip is currently fully booked. Please check back later!
             </div>
           ) : (
-            <form onSubmit={(e) => {
+            <form
+              onSubmit={(e) => {
                 e.preventDefault();
                 handleSubmitBooking();
-            }}>
+              }}
+            >
               <div className="space-y-4">
+                {/* FULL NAME */}
                 <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name</label>
+                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                    Full Name
+                  </label>
                   <input
                     type="text"
                     id="fullName"
@@ -87,9 +92,14 @@ const TripDetailPage: React.FC = () => {
                     required
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
                   />
+
                 </div>
+
+                {/* EMAIL */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     id="email"
@@ -99,33 +109,68 @@ const TripDetailPage: React.FC = () => {
                     required
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
                   />
+
+                  {/* Email validation */}
+                  {formData.email !== "" && !formData.email.includes("@") && (
+                    <p className="mt-1 text-sm text-red-600">Invalid email format</p>
+                  )}
                 </div>
+
+                {/* PHONE */}
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number</label>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                    Phone Number
+                  </label>
                   <input
-                    type="tel"
+                    type="text"
                     id="phone"
                     name="phone"
                     value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="(123) 456-7890"
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // Allow digits only
+                      if (/^\d*$/.test(value)) {
+                        // Limit to 11 digits
+                        if (value.length <= 11) {
+                          handleChange(e);
+                        }
+                      }
+                    }}
                     required
+                    placeholder="09123456789"
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
                   />
+
+                  {formData.phone !== "" && formData.phone.length < 11 && (
+                    <p className="mt-1 text-sm text-red-600">
+                      Phone number must be exactly 11 digits (current: {formData.phone.length})
+                    </p>
+                  )}
                 </div>
+
+                {/* TRAVELERS */}
                 <div>
-                  <label htmlFor="numPersons" className="block text-sm font-medium text-gray-700">Number of Travelers</label>
+                  <label htmlFor="numPersons" className="block text-sm font-medium text-gray-700">
+                    Number of Travelers
+                  </label>
                   <input
-                    type="number"
+                    type="text"
                     id="numPersons"
                     name="numPersons"
-                    value={formData.numPersons}
-                    onChange={handleChange}
                     min="1"
                     max={trip.remainingSeats}
                     required
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
+                    value={formData.numPersons}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3"
                   />
+
+                  {Number(formData.numPersons) > trip.remainingSeats && (
+                    <p className="text-sm text-red-600 mt-1">
+                      Maximum allowed travelers is {trip.remainingSeats}.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -135,12 +180,14 @@ const TripDetailPage: React.FC = () => {
 
               <button
                 type="submit"
-                className={`mt-6 w-full py-3 px-4 rounded-md shadow-lg font-semibold text-white transition duration-300 ${bookingDisabled 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700'}`}
+                className={`mt-6 w-full py-3 px-4 rounded-md shadow-lg font-semibold text-white transition duration-300 ${
+                  bookingDisabled
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
                 disabled={bookingDisabled}
               >
-                {isSubmitting ? 'Processing Booking...' : 'Confirm and Pay'}
+                {isSubmitting ? "Processing Booking..." : "Confirm and Pay"}
               </button>
             </form>
           )}

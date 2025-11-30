@@ -38,38 +38,9 @@ export default function AdminBookingsPage() {
     handleSubmit,
     handleDelete,
     setFormData,
+    getRemainingSeats,
+    validateNumPersons,
   } = useBooks();
-
-  // Calculate remaining seats for a trip
-  const getRemainingSeats = (tripId: string) => {
-    const trip = trips.find(t => t.id === tripId);
-    if (!trip) return 0;
-    
-    // Count confirmed bookings for this trip
-    const confirmedBookings = bookings.filter(
-      (b) => b.tripId === tripId && b.status === "CONFIRMED"
-    );
-    const totalBooked = confirmedBookings.reduce(
-      (sum, b) => sum + b.numPersons,
-      0
-    );
-    
-    return trip.capacity - totalBooked;
-  };
-
-  // Validate number of persons
-  const validateNumPersons = (tripId: string, numPersons: string) => {
-    if (!tripId || !numPersons) return null;
-    
-    const remaining = getRemainingSeats(tripId);
-    const requested = parseInt(numPersons) || 0;
-    
-    if (requested > remaining) {
-      return `Cannot book more than ${remaining} person(s). Only ${remaining} seat(s) remaining.`;
-    }
-    
-    return null;
-  };
 
   if (loading) {
     return (
@@ -363,7 +334,7 @@ export default function AdminBookingsPage() {
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           placeholder="Enter phone number (min 12 characters)"
                         />
-                        {formData.phone && formData.phone.length < 12 && (
+                        {formData.phone && formData.phone.length < 11 && (
                           <p className="mt-1 text-sm text-red-600">
                             Phone number must be at least 12 characters (current: {formData.phone.length})
                           </p>

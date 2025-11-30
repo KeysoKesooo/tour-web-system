@@ -63,25 +63,8 @@ export const useBooks = () => {
     }
   };
 
-  
 
 
-  // ✅ Update bookings for a specific trip (used by UseTrips hook)
-  const updateBookingsForTrip = (tripId: string, updatedTrip: ITrip) => {
-    setBookings((prevBookings) => {
-      const hasConnectedBookings = prevBookings.some((b) => b.tripId === tripId);
-      if (!hasConnectedBookings) {
-        return prevBookings;
-      }
-
-      return prevBookings.map((booking) => {
-        if (booking.tripId === tripId) {
-          return { ...booking, trip: updatedTrip };
-        }
-        return booking;
-      });
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,6 +169,58 @@ export const useBooks = () => {
     );
   };
 
+
+      // Calculate remaining seats for a trip
+  const getRemainingSeats = (tripId: string) => {
+    const trip = trips.find(t => t.id === tripId);
+    if (!trip) return 0;
+    
+    // Count confirmed bookings for this trip
+    const confirmedBookings = bookings.filter(
+      (b) => b.tripId === tripId && b.status === "CONFIRMED"
+    );
+    const totalBooked = confirmedBookings.reduce(
+      (sum, b) => sum + b.numPersons,
+      0
+    );
+    
+    return trip.capacity - totalBooked;
+  };
+
+
+  
+  // Validate number of persons
+  const validateNumPersons = (tripId: string, numPersons: string) => {
+    if (!tripId || !numPersons) return null;
+    
+    const remaining = getRemainingSeats(tripId);
+    const requested = parseInt(numPersons) || 0;
+    
+    if (requested > remaining) {
+      return `Cannot book more than ${remaining} person(s). Only ${remaining} seat(s) remaining.`;
+    }
+    
+    return null;
+  };
+
+
+  // ✅ Update bookings for a specific trip (used by UseTrips hook)
+  const updateBookingsForTrip = (tripId: string, updatedTrip: ITrip) => {
+    setBookings((prevBookings) => {
+      const hasConnectedBookings = prevBookings.some((b) => b.tripId === tripId);
+      if (!hasConnectedBookings) {
+        return prevBookings;
+      }
+
+      return prevBookings.map((booking) => {
+        if (booking.tripId === tripId) {
+          return { ...booking, trip: updatedTrip };
+        }
+        return booking;
+      });
+    });
+  };
+
   
 
   const filteredBookings = bookings.filter((booking) => {
@@ -230,5 +265,7 @@ export const useBooks = () => {
     setFormData,
     fetchBookings,
     updateBookingsForTrip,
+    getRemainingSeats,
+    validateNumPersons,
   };
 };
