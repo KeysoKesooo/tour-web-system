@@ -1,6 +1,6 @@
 'use client';
 
-import { useDashboard } from '@/hooks/UseAnalytics';
+import { useDashboard } from '@/hooks/admin/UseAnalytics';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';

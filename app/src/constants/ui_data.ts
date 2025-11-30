@@ -1,3 +1,5 @@
+// src/constants/ui_data.ts
+
 import {
   TrendingUp,
   ShieldCheck,
@@ -8,35 +10,9 @@ import {
   ArrowLeft,
   CheckCircle,
 } from "lucide-react";
-import React from "react";
+import { Review, ValueProp, Destination } from "@/types/Ui"; // Import types from central types file
 
-// --- Interfaces ---
-
-export interface Review {
-  id: number;
-  name: string;
-  location: string;
-  rating: number;
-  comment: string;
-}
-
-export interface ValueProp {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  color: string;
-}
-
-export interface Destination {
-  id: number;
-  name: string;
-  themeColor: string;
-  tagline: string;
-  price: number;
-  icon: string;
-}
-
-// --- Global Data ---
+// --- Global Data Arrays ---
 
 export const reviewsData: Review[] = [
   {
@@ -100,7 +76,7 @@ export const valueProps: ValueProp[] = [
 export const destinations: Destination[] = [
   {
     id: 1,
-    name: "Japan",
+    name: "Palenke",
     themeColor: "bg-red-800",
     tagline: "A seamless blend of ancient temples and neon-lit futures.",
     price: 4200,
@@ -108,7 +84,7 @@ export const destinations: Destination[] = [
   },
   {
     id: 2,
-    name: "Vietnam",
+    name: "Kanto",
     themeColor: "bg-green-800",
     tagline: "Discover lush rice paddies and dynamic street food culture.",
     price: 2800,

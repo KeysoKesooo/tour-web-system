@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { auth } from "@/lib/auth";
-import { UserRepository } from "@/core/repositories/userRepository";
+import { UserRepository } from "@/core/repositories/User.Repository";
 
 export class AuthService {
   private userRepo = new UserRepository();

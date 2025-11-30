@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Star, Review, reviewsData, travelImages } from '../../lib/types_and_data';
-
-// --- Internal Helper Components ---
+import { Star, reviewsData, travelImages } from '../../constants/ui_data';
+import { Review } from '@/types/Ui';
 
 const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
   return (

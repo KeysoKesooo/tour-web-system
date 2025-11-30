@@ -1,5 +1,5 @@
 import React from 'react';
-import { valueProps } from '../../lib/types_and_data';
+import { valueProps } from '../../constants/ui_data';
 
 const FeatureSection: React.FC = () => {
     return (

@@ -9,4 +9,5 @@ export interface ITrip {
   imageUrl?: string | null;
   startDate: string;
   endDate: string;
+  remainingSeats: number;
 }

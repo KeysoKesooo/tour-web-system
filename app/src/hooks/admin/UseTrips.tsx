@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ITrip } from "@/types";
-import { useBooks } from "@/hooks/UseBooks";
+import { useBooks } from "@/hooks/admin/UseBooks";
 
 export function useTrips() {
   const [trips, setTrips] = useState<ITrip[]>([]);

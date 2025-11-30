@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
-import { useUsers } from '@/hooks/UseUser';
+import { useUsers } from '@/hooks/admin/UseUser';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Role } from '@/types/RoleAction';

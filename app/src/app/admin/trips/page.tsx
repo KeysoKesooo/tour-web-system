@@ -10,8 +10,8 @@ import {
   Users,
   DollarSign,
 } from "lucide-react";
-import { useTrips } from "@/hooks/UseTrips";
-import { useBooks } from "@/hooks/UseBooks";
+import { useTrips } from "@/hooks/admin/UseTrips";
+import { useBooks } from "@/hooks/admin/UseBooks";
 
 export default function AdminTripsPage() {
   const {

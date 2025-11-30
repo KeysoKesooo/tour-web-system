@@ -1,6 +1,6 @@
 "use client";
 
-import { useBooks } from "@/hooks/UseBooks";
+import { useBooks } from "@/hooks/admin/UseBooks";
 import {
   Plus,
   Edit,

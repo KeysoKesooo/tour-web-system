@@ -56,7 +56,7 @@ const Navbar: React.FC = () => {
         <div className="container mx-auto px-6 flex justify-between items-center max-w-6xl">
             {/* Logo/Brand */}
             <a href="#home" className="text-3xl sm:text-4xl font-black text-white tracking-widest transition duration-300 hover:text-teal-400">
-                Aethel
+                Fullpack Tours
             </a>
             
             {/* Navigation Links (Hidden on small screens) */}

@@ -26,5 +26,5 @@ export interface BookingFormData {
   email: string;
   phone: string;
   numPersons: number;
-  message: string;
+  message?: string;
 }

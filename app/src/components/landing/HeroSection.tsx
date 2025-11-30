@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight } from '../../lib/types_and_data';
+import { ArrowRight } from '../../constants/ui_data';
 
 const HeroSection: React.FC = () => {
   const [scrollPosition, setScrollPosition] = useState(0);

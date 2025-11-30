@@ -1,5 +1,8 @@
+// TripRepository.ts
+
 import { prisma } from "@/lib/prisma";
 import { CreateTripInput, UpdateTripInput } from "../dto/trip.dto";
+import { Trip } from "@prisma/client";
 
 export class TripRepository {
   async create(data: CreateTripInput) {
@@ -20,5 +23,22 @@ export class TripRepository {
 
   async delete(id: string) {
     return prisma.trip.delete({ where: { id } });
+  }
+
+  async findByLocation(location: string): Promise<Trip[]> {
+    return prisma.trip.findMany({
+      where: {
+        location: {
+          equals: location,
+          mode: "insensitive",
+        },
+        startDate: {
+          gte: new Date(),
+        },
+      },
+      orderBy: {
+        startDate: "asc",
+      },
+    });
   }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plane } from '../../lib/types_and_data';
+import { Plane } from '../../constants/ui_data';
 
 const CTASection: React.FC = () => {
     return (

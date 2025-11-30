@@ -1,15 +1,17 @@
-import { BookingRepository } from "@/core/repositories/bookingRepository";
+import { BookingRepository } from "@/core/repositories/Booking.Repository";
 import { BookingModel } from "@/core/models/Booking.model";
-import { CreateBookingInput, UpdateBookingInput } from "@/core/dto/booking.dto";
+import {
+  CreateBookingInput,
+  UpdateBookingInput,
+  PublicCreateBookingInput,
+  CreateBookingDTO,
+} from "@/core/dto/booking.dto";
 import { BookingStatus } from "@/types/BookingStatus";
 import { prisma } from "@/lib/prisma";
 
 export class BookingService {
   private repo = new BookingRepository();
 
-  /**
-   * Calculate remaining seats for a trip (only counts CONFIRMED bookings)
-   */
   static async getRemainingSeats(tripId: string): Promise<number> {
     const trip = await prisma.trip.findUnique({ where: { id: tripId } });
     if (!trip) throw new Error("Trip not found");
@@ -22,10 +24,6 @@ export class BookingService {
     return trip.capacity - (totalBooked._sum.numPersons ?? 0);
   }
 
-  /**
-   * Validate if a booking can be made based on trip capacity
-   * @returns null if valid, error message if invalid
-   */
   static async validateBookingCapacity(
     tripId: string,
     numPersons: number
@@ -54,7 +52,49 @@ export class BookingService {
     return new BookingModel(booking);
   }
 
+  async publicCreateBooking(
+    data: PublicCreateBookingInput
+  ): Promise<BookingModel> {
+    // 1. Validate booking capacity
+    const validationError = await BookingService.validateBookingCapacity(
+      data.tripId,
+      data.numPersons
+    );
+
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
+    // 2. 🔑 CRITICAL: Fetch Trip Price
+    const trip = await prisma.trip.findUnique({
+      where: { id: data.tripId },
+      select: { price: true },
+    });
+
+    if (!trip) {
+      throw new Error("Trip not found during booking creation.");
+    }
+
+    // 3. Map Public Input to Internal Input and set defaults
+    const internalData: CreateBookingInput = {
+      ...data,
+      status: BookingStatus.PENDING, // Set default status
+      amountPaid: trip.price * data.numPersons, // Set default amountPaid
+    };
+
+    // Optional: Re-validate against the internal DTO (good practice)
+    CreateBookingDTO.parse(internalData);
+
+    // 4. Use the single private method for core logic
+    return this.createBookingCore(internalData);
+  }
+
   async createBooking(data: CreateBookingInput): Promise<BookingModel> {
+    // Use the single private method for core logic
+    return this.createBookingCore(data);
+  }
+
+  async createBookingCore(data: CreateBookingInput): Promise<BookingModel> {
     // Validate booking capacity
     const validationError = await BookingService.validateBookingCapacity(
       data.tripId,

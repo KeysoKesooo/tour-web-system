@@ -1,4 +1,4 @@
-import { AnalyticsRepository } from "@/core/repositories/analyticsrepository";
+import { AnalyticsRepository } from "@/core/repositories/Analytics.Repository";
 import { TripModel } from "@/core/models/Trip.model";
 
 export class AnalyticsService {

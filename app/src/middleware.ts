@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server"; // Added NextRequest type for clarity
 
-export async function middleware(req: Request) {
+export async function middleware(req: NextRequest) {
   const url = new URL(req.url);
   const path = url.pathname;
 
-  // 1️⃣ Allow public routes (auth-related)
+  // 1️⃣A Allow public authentication routes
   if (path.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
+  // 1️⃣B ✅ NEW: Allow all explicitly public API routes (e.g., /api/public/trips/*)
+  if (path.startsWith("/api/public/")) {
     return NextResponse.next();
   }
 
@@ -43,6 +49,9 @@ export async function middleware(req: Request) {
 }
 
 export const config = {
+  // The matcher configuration is still correct for restricting the middleware
+  // only to admin paths, but the check in the middleware is also necessary
+  // for robustness, especially if you move the config later.
   matcher: [
     "/api/admin/:path*",
     "/admin/:path*", // protect admin dashboard pages

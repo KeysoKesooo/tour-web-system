@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { UserRepository } from "@/core/repositories/userRepository";
+import { UserRepository } from "@/core/repositories/User.Repository";
 import { CreateUserInput, UpdateUserInput } from "../dto/user.dto";
 import { UserModel } from "@/core/models/User.model";
 
