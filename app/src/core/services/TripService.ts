@@ -1,106 +1,127 @@
 import { TripRepository } from "@/core/repositories/Trip.Repository";
+import { BookingRepository } from "@/core/repositories/Booking.Repository";
+import { AnalyticsRepository } from "@/core/repositories/Analytics.Repository";
 import { TripModel } from "@/core/models/Trip.model";
 import { CreateTripInput, UpdateTripInput } from "@/core/dto/trip.dto";
-import { prisma } from "@/lib/prisma";
+import { CacheService } from "@/lib/redis/cacheService";
+import { enqueueJob } from "@/lib/redis/upstash";
 
 export class TripService {
   private repo = new TripRepository();
+  private bookingRepo = new BookingRepository();
+  private analyticsRepo = new AnalyticsRepository();
 
+  // ------------------- GET Methods (Cache TTL) -------------------
   async getAllTrips(): Promise<TripModel[]> {
-    const trips = await this.repo.findAll();
-    return Promise.all(
-      trips.map(async (t) => {
-        const totalBooked = await prisma.booking.aggregate({
-          _sum: { numPersons: true },
-          where: { tripId: t.id, status: "CONFIRMED" },
-        });
-        return new TripModel(t, totalBooked._sum.numPersons ?? 0);
-      })
-    );
+    return CacheService.getOrSet("trips:all", 60, async () => {
+      const trips = await this.repo.findAll();
+      const tripIds = trips.map((t) => t.id);
+
+      const bookingsSum = await this.bookingRepo.getTotalConfirmedForTrip(
+        tripIds
+      );
+
+      return trips.map((trip) => {
+        const booked =
+          bookingsSum.find((b) => b.tripId === trip.id)?.total ?? 0;
+        return new TripModel(trip, booked);
+      });
+    });
   }
 
   async getTripsByDestination(destination: string): Promise<TripModel[]> {
-    // We use prisma.trip directly here because the filtering logic is complex and involves business logic (future dates).
-    const trips = await prisma.trip.findMany({
-      where: {
-        // Filter by the 'location' field, which represents the destination
-        location: {
-          equals: destination,
-          mode: "insensitive", // Use case-insensitive mode for robust search
-        },
-        startDate: {
-          gt: new Date(), // Only show trips that haven't started yet
-        },
-      },
-      orderBy: {
-        startDate: "asc", // Order by the nearest upcoming date
-      },
-    });
+    const cacheKey = `trips:destination:${destination.toLowerCase()}`;
+    return CacheService.getOrSet(cacheKey, 60, async () => {
+      const trips = await this.repo.findByLocation(destination);
+      const tripIds = trips.map((t) => t.id);
 
-    // We must still calculate the total booked seats for each trip
-    return Promise.all(
-      trips.map(async (t) => {
-        const totalBooked = await prisma.booking.aggregate({
-          _sum: { numPersons: true },
-          where: { tripId: t.id, status: "CONFIRMED" },
-        });
-        return new TripModel(t, totalBooked._sum.numPersons ?? 0);
-      })
-    );
+      const bookingsSum = await this.bookingRepo.getTotalConfirmedForTrip(
+        tripIds
+      );
+
+      return trips.map((trip) => {
+        const booked =
+          bookingsSum.find((b) => b.tripId === trip.id)?.total ?? 0;
+        return new TripModel(trip, booked);
+      });
+    });
   }
 
   async getTripById(id: string): Promise<TripModel> {
-    const trip = await this.repo.findById(id);
-    if (!trip) throw new Error("Trip not found");
+    return CacheService.getOrSet(`trip:${id}`, 60, async () => {
+      const trip = await this.repo.findById(id);
+      if (!trip) throw new Error("Trip not found");
 
-    const totalBooked = await prisma.booking.aggregate({
-      _sum: { numPersons: true },
-      where: { tripId: trip.id, status: "CONFIRMED" },
+      const bookingsSum = await this.bookingRepo.getTotalConfirmedForTrip([
+        trip.id,
+      ]);
+      const booked = bookingsSum.find((b) => b.tripId === trip.id)?.total ?? 0;
+
+      return new TripModel(trip, booked);
     });
-
-    return new TripModel(trip, totalBooked._sum.numPersons ?? 0);
   }
 
-  async createTrip(data: CreateTripInput): Promise<TripModel> {
-    const trip = await this.repo.create(data); // Automatically initialize analytics for this trip
+  async getAllTripsWithBookings(): Promise<TripModel[]> {
+    return this.getAllTrips(); // Already optimized above
+  }
 
-    await prisma.analytics.updateMany({
-      where: { date: new Date(trip.createdAt.toISOString().slice(0, 10)) },
-      data: { totalTrips: { increment: 1 } },
+  // ------------------- CREATE (Write-Behind via QStash) -------------------
+  async createTrip(data: CreateTripInput): Promise<TripModel> {
+    await enqueueJob("trip-worker", {
+      type: "createTrip",
+      payload: data,
     });
+    return this.createTripCore(data);
+  }
+
+  private async createTripCore(data: CreateTripInput): Promise<TripModel> {
+    const trip = await this.repo.create(data);
+
+    // Invalidate cache
+    await CacheService.invalidate("trips:all");
+
+    // Update analytics via repository
+    const dateKey = trip.createdAt.toISOString().slice(0, 10);
+    await this.analyticsRepo.upsertTripAnalytics(dateKey, 1);
 
     return new TripModel(trip);
   }
 
+  // ------------------- UPDATE (Invalidate Cache) -------------------
   async updateTrip(id: string, data: UpdateTripInput): Promise<TripModel> {
     const trip = await this.repo.update(id, data);
+
+    await CacheService.invalidate(`trip:${id}`);
+    await CacheService.invalidate("trips:all");
+
     return new TripModel(trip);
   }
 
+  // ------------------- DELETE (Invalidate Cache) -------------------
   async deleteTrip(id: string): Promise<void> {
     const trip = await this.repo.findById(id);
     if (!trip) throw new Error("Trip not found");
 
-    await this.repo.delete(id); // Decrement analytics totalTrips
+    await this.repo.delete(id);
 
     const dateKey = trip.createdAt.toISOString().slice(0, 10);
-    await prisma.analytics.updateMany({
-      where: { date: new Date(dateKey) },
-      data: { totalTrips: { decrement: 1 } },
-    });
-  } // Optional: get total bookings and revenue for a specific trip
+    await this.analyticsRepo.decrementTripAnalytics(dateKey, 1);
 
+    await CacheService.invalidate(`trip:${id}`);
+    await CacheService.invalidate("trips:all");
+  }
+
+  // ------------------- Analytics (Cache optional) -------------------
   async getTripAnalytics(tripId: string) {
-    const bookings = await prisma.booking.findMany({
-      where: { tripId, status: "CONFIRMED" },
+    return CacheService.getOrSet(`trip:analytics:${tripId}`, 60, async () => {
+      const totalBooked = await this.bookingRepo.getTotalConfirmedForTrip([
+        tripId,
+      ]);
+      const totalRevenue = await this.bookingRepo.getTotalRevenueForTrip(
+        tripId
+      );
+
+      return { totalBookings: totalBooked, totalRevenue };
     });
-
-    const totalBookings = bookings.length;
-    const totalRevenue = bookings.reduce(
-      (sum, b) => sum + (b.amountPaid || 0),
-      0
-    );
-
-    return { totalBookings, totalRevenue };
   }
 }

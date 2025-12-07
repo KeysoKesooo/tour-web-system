@@ -17,11 +17,9 @@ import {
   Search,
 } from "lucide-react";
 
-
 export default function AdminBookingsPage() {
   const {
     bookings,
-    trips,
     loading,
     searchTerm,
     statusFilter,
@@ -126,39 +124,21 @@ export default function AdminBookingsPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trip
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trip Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Persons
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount Paid
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date Created
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th>Customer</th>
+                  <th>Trip</th>
+                  <th>Price</th>
+                  <th>Trip Date</th>
+                  <th>Persons</th>
+                  <th>Status</th>
+                  <th>Amount Paid</th>
+                  <th>Date Created</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredBookings.map((booking) => (
                   <tr key={booking.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td>
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
                           <User className="h-5 w-5 text-blue-600" />
@@ -176,50 +156,30 @@ export default function AdminBookingsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td>
                       <div className="text-sm font-medium text-gray-900">{booking.trip?.title || "N/A"}</div>
                       <div className="text-sm text-gray-500 flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
                         {booking.trip?.location || "N/A"}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-medium">
-                        ${booking.trip?.price ? booking.trip.price.toFixed(2) : "0.00"}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">per person</div>
+                    <td>
+                      ${booking.trip?.price?.toFixed(2) || "0.00"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-medium flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {booking.trip?.startDate && booking.trip?.endDate
-                          ? `${new Date(booking.trip.startDate).toLocaleDateString()} - ${new Date(booking.trip.endDate).toLocaleDateString()}`
-                          : "N/A"}
-                      </div>
+                    <td>
+                      {booking.trip?.startDate && booking.trip?.endDate
+                        ? `${new Date(booking.trip.startDate).toLocaleDateString()} - ${new Date(booking.trip.endDate).toLocaleDateString()}`
+                        : "N/A"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-medium">{booking.numPersons}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(booking.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">${booking.amountPaid ? booking.amountPaid.toFixed(2) : "0.00"}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(booking.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => openModal(booking)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                      >
+                    <td>{booking.numPersons}</td>
+                    <td>{getStatusBadge(booking.status)}</td>
+                    <td>${booking.amountPaid?.toFixed(2) || "0.00"}</td>
+                    <td>{new Date(booking.createdAt).toLocaleDateString()}</td>
+                    <td className="text-right">
+                      <button onClick={() => openModal(booking)} className="text-blue-600 hover:text-blue-900 mr-3">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(booking.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
+                      <button onClick={() => handleDelete(booking.id)} className="text-red-600 hover:text-red-900">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
@@ -240,218 +200,67 @@ export default function AdminBookingsPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                {editingBooking ? "Edit Booking Status" : "Create New Booking"}
-              </h2>
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              {editingBooking ? "Edit Booking Status" : "Create New Booking"}
+            </h2>
 
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!editingBooking) {
-                    const validationError = validateNumPersons(formData.tripId, formData.numPersons);
-                    if (validationError) {
-                      alert(validationError);
-                      return;
-                    }
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!editingBooking) {
+                  const validationError = validateNumPersons(formData.tripId, formData.numPersons);
+                  if (validationError) {
+                    alert(validationError);
+                    return;
                   }
-                  handleSubmit(e);
-                }} 
-                className="space-y-4"
-              >
-                {!editingBooking && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Trip *
-                      </label>
-                      <select
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={formData.tripId}
-                        onChange={(e) => {
-                          const selectedTrip = trips.find(t => t.id === e.target.value);
-                          setFormData({
-                            ...formData,
-                            tripId: e.target.value,
-                            amountPaid: selectedTrip ? (selectedTrip.price * parseInt(formData.numPersons || "1")).toString() : "",
-                          });
-                        }}
-                      >
-                        <option value="">Select a trip</option>
-                        {trips.map((trip) => (
-                          <option key={trip.id} value={trip.id}>
-                            {trip.title} - {trip.location} (${trip.price}/person)
-                          </option>
-                        ))}
-                      </select>
-                      {formData.tripId && (
-                        <p className="mt-1 text-sm text-gray-600">
-                          Capacity: {trips.find(t => t.id === formData.tripId)?.capacity || 0} seats | 
-                          Available: {getRemainingSeats(formData.tripId)} seats
-                        </p>
-                      )}
-                    </div>
+                }
+                handleSubmit(e);
+              }}
+              className="space-y-4"
+            >
+              {/* Status select */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status *
+                </label>
+                <select
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={formData.fullName}
-                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Email *
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Phone * (min 12 characters)
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          minLength={12}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          placeholder="Enter phone number (min 12 characters)"
-                        />
-                        {formData.phone && formData.phone.length < 11 && (
-                          <p className="mt-1 text-sm text-red-600">
-                            Phone number must be at least 12 characters (current: {formData.phone.length})
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Number of Persons *
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max={formData.tripId ? getRemainingSeats(formData.tripId) : undefined}
-                          required
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            validateNumPersons(formData.tripId, formData.numPersons)
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          value={formData.numPersons}
-                          onChange={(e) => {
-                            const selectedTrip = trips.find(t => t.id === formData.tripId);
-                            const numPersonsValue = e.target.value;
-                            setFormData({
-                              ...formData,
-                              numPersons: numPersonsValue,
-                              amountPaid: selectedTrip ? (selectedTrip.price * parseInt(numPersonsValue || "1")).toString() : formData.amountPaid,
-                            });
-                          }}
-                        />
-                        {validateNumPersons(formData.tripId, formData.numPersons) && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {validateNumPersons(formData.tripId, formData.numPersons)}
-                          </p>
-                        )}
-                        {formData.tripId && !validateNumPersons(formData.tripId, formData.numPersons) && formData.numPersons && (
-                          <p className="mt-1 text-sm text-gray-500">
-                            {getRemainingSeats(formData.tripId) - parseInt(formData.numPersons || "0")} seat(s) remaining after this booking
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Amount Paid ($) *
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          required
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          value={formData.amountPaid}
-                          onChange={(e) => setFormData({ ...formData, amountPaid: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Special Requests / Message
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        value={formData.message}
-                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status *
-                  </label>
-                  <select
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                  >
-                    <option value="PENDING">Pending</option>
-                    <option value="CONFIRMED">Confirmed</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </select>
+              {editingBooking && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> Only the booking status can be changed when editing.
+                    To modify other details, please delete and create a new booking.
+                  </p>
                 </div>
+              )}
 
-                {editingBooking && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                      <strong>Note:</strong> Only the booking status can be changed when editing. 
-                      To modify other details, please delete and create a new booking.
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="flex-1 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    {editingBooking ? "Update Status" : "Create Booking"}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {editingBooking ? "Update Status" : "Create Booking"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

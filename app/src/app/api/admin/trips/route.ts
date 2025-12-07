@@ -6,7 +6,7 @@ const service = new TripService();
 
 export async function GET() {
   try {
-    const trips = await service.getAllTrips();
+    const trips = await service.getAllTripsWithBookings();
     return NextResponse.json(
       trips.map((t) => ({
         id: t.id,

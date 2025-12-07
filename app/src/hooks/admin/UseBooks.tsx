@@ -6,7 +6,6 @@ import { Clock, CheckCircle, XCircle } from "lucide-react";
 
 export const useBooks = () => {
   const [bookings, setBookings] = useState<IBooking[]>([]);
-  const [trips, setTrips] = useState<ITrip[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -25,46 +24,19 @@ export const useBooks = () => {
 
   useEffect(() => {
     fetchBookings();
-    fetchTrips();
   }, []);
 
   const fetchBookings = async () => {
     try {
       const res = await fetch("/api/admin/bookings");
       const data = await res.json();
-
-      const bookingsWithTrips = await Promise.all(
-        data.map(async (booking: IBooking) => {
-          try {
-            const tripRes = await fetch(`/api/admin/trips/${booking.tripId}`);
-            const trip = await tripRes.json();
-            return { ...booking, trip };
-          } catch {
-            return booking;
-          }
-        })
-      );
-
-      setBookings(bookingsWithTrips);
+      setBookings(data); // Already includes trip info from BookingService
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  const fetchTrips = async () => {
-    try {
-      const res = await fetch("/api/admin/trips");
-      const data = await res.json();
-      setTrips(data);
-    } catch (error) {
-      console.error("Failed to fetch trips:", error);
-    }
-  };
-
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,67 +141,55 @@ export const useBooks = () => {
     );
   };
 
+  // ------------------- BOOKING CALCULATIONS -------------------
 
-      // Calculate remaining seats for a trip
+  // Calculate booked persons for a trip
+  const getBookedCount = (tripId: string) => {
+    return bookings
+      .filter((b) => b.tripId === tripId && b.status !== "CANCELLED")
+      .reduce((total, b) => total + b.numPersons, 0);
+  };
+
+  // Calculate remaining seats for a trip (trip capacity comes from booking.trip)
   const getRemainingSeats = (tripId: string) => {
-    const trip = trips.find(t => t.id === tripId);
+    const trip = bookings.find((b) => b.tripId === tripId)?.trip;
     if (!trip) return 0;
-    
-    // Count confirmed bookings for this trip
-    const confirmedBookings = bookings.filter(
-      (b) => b.tripId === tripId && b.status === "CONFIRMED"
-    );
-    const totalBooked = confirmedBookings.reduce(
-      (sum, b) => sum + b.numPersons,
-      0
-    );
-    
+
+    const totalBooked = bookings
+      .filter((b) => b.tripId === tripId && b.status === "CONFIRMED")
+      .reduce((sum, b) => sum + b.numPersons, 0);
+
     return trip.capacity - totalBooked;
   };
 
-
-  
   // Validate number of persons
   const validateNumPersons = (tripId: string, numPersons: string) => {
     if (!tripId || !numPersons) return null;
-    
+
     const remaining = getRemainingSeats(tripId);
     const requested = parseInt(numPersons) || 0;
-    
+
     if (requested > remaining) {
       return `Cannot book more than ${remaining} person(s). Only ${remaining} seat(s) remaining.`;
     }
-    
+
     return null;
   };
 
-
-  // ✅ Update bookings for a specific trip (used by UseTrips hook)
+  // Update bookings for a specific trip after editing trip info
   const updateBookingsForTrip = (tripId: string, updatedTrip: ITrip) => {
-    setBookings((prevBookings) => {
-      const hasConnectedBookings = prevBookings.some((b) => b.tripId === tripId);
-      if (!hasConnectedBookings) {
-        return prevBookings;
-      }
-
-      return prevBookings.map((booking) => {
-        if (booking.tripId === tripId) {
-          return { ...booking, trip: updatedTrip };
-        }
-        return booking;
-      });
-    });
+    setBookings((prev) =>
+      prev.map((b) => (b.tripId === tripId ? { ...b, trip: updatedTrip } : b))
+    );
   };
 
-  
-
+  // ------------------- FILTERED BOOKINGS & STATS -------------------
   const filteredBookings = bookings.filter((booking) => {
     const matchesSearch =
       booking.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.trip?.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "ALL" || booking.status === statusFilter;
+    const matchesStatus = statusFilter === "ALL" || booking.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -246,7 +206,6 @@ export const useBooks = () => {
   return {
     bookings,
     setBookings,
-    trips,
     loading,
     searchTerm,
     statusFilter,
@@ -267,5 +226,6 @@ export const useBooks = () => {
     updateBookingsForTrip,
     getRemainingSeats,
     validateNumPersons,
+    getBookedCount,
   };
 };

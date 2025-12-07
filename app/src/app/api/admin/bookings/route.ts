@@ -5,7 +5,7 @@ import { CreateBookingDTO } from "@/core/dto/booking.dto";
 const service = new BookingService();
 
 export async function GET() {
-  const bookings = await service.getAllBookings();
+  const bookings = await service.getAllBookingsWithTrips();
 
   return NextResponse.json(
     bookings.map((b) => ({

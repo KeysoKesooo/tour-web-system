@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { AnalyticsOutput } from "../dto/analytics.dto";
 
 export class AnalyticsRepository {
-  async findLatest(): Promise<AnalyticsOutput | null> {
+  // ------------------- General Analytics -------------------
+  async findLatest() {
     const latest = await prisma.analytics.findFirst({
       orderBy: { date: "desc" },
     });
@@ -18,11 +18,30 @@ export class AnalyticsRepository {
     };
   }
 
-  async upsertAnalytics(
-    date: Date,
+  // ------------------- Upsert / Increment Analytics -------------------
+  async upsertTripAnalytics(dateKey: string, increment = 1) {
+    const date = new Date(dateKey);
+    return prisma.analytics.upsert({
+      where: { date },
+      update: { totalTrips: { increment } },
+      create: { date, totalTrips: increment },
+    });
+  }
+
+  async decrementTripAnalytics(dateKey: string, decrement = 1) {
+    const date = new Date(dateKey);
+    return prisma.analytics.updateMany({
+      where: { date },
+      data: { totalTrips: { decrement } },
+    });
+  }
+
+  async upsertBookingAnalytics(
+    dateKey: string,
     bookingsIncrement = 0,
     revenueIncrement = 0
   ) {
+    const date = new Date(dateKey);
     return prisma.analytics.upsert({
       where: { date },
       update: {
@@ -37,8 +56,18 @@ export class AnalyticsRepository {
     });
   }
 
+  // ------------------- Trip Stats -------------------
   async countTrips(): Promise<number> {
     return prisma.trip.count();
+  }
+
+  async countOngoingTrips(today: Date): Promise<number> {
+    return prisma.trip.count({
+      where: {
+        startDate: { lte: today },
+        endDate: { gte: today },
+      },
+    });
   }
 
   async findMostBookedTrip() {
@@ -52,14 +81,5 @@ export class AnalyticsRepository {
     if (!bookings || bookings.length === 0) return null;
 
     return prisma.trip.findUnique({ where: { id: bookings[0].tripId } });
-  }
-
-  async countOngoingTrips(today: Date): Promise<number> {
-    return prisma.trip.count({
-      where: {
-        startDate: { lte: today },
-        endDate: { gte: today },
-      },
-    });
   }
 }

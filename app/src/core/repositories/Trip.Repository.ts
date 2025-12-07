@@ -1,5 +1,3 @@
-// TripRepository.ts
-
 import { prisma } from "@/lib/prisma";
 import { CreateTripInput, UpdateTripInput } from "../dto/trip.dto";
 import { Trip } from "@prisma/client";
@@ -9,11 +7,11 @@ export class TripRepository {
     return prisma.trip.create({ data });
   }
 
-  async findAll() {
-    return prisma.trip.findMany({ orderBy: { createdAt: "desc" } });
+  async findAll(): Promise<Trip[]> {
+    return prisma.trip.findMany({ orderBy: { startDate: "asc" } });
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<Trip | null> {
     return prisma.trip.findUnique({ where: { id } });
   }
 
@@ -28,17 +26,33 @@ export class TripRepository {
   async findByLocation(location: string): Promise<Trip[]> {
     return prisma.trip.findMany({
       where: {
-        location: {
-          equals: location,
-          mode: "insensitive",
-        },
-        startDate: {
-          gte: new Date(),
-        },
+        location: { equals: location, mode: "insensitive" },
+        startDate: { gte: new Date() },
       },
-      orderBy: {
-        startDate: "asc",
-      },
+      orderBy: { startDate: "asc" },
     });
+  }
+
+  // Booking aggregation helpers
+  async getTotalBooked(tripId: string): Promise<number> {
+    const result = await prisma.booking.aggregate({
+      where: { tripId, status: "CONFIRMED" },
+      _sum: { numPersons: true },
+    });
+    return result._sum.numPersons ?? 0;
+  }
+
+  async getTotalBookedForTrips(
+    tripIds: string[]
+  ): Promise<{ tripId: string; total: number }[]> {
+    const result = await prisma.booking.groupBy({
+      by: ["tripId"],
+      where: { tripId: { in: tripIds }, status: "CONFIRMED" },
+      _sum: { numPersons: true },
+    });
+    return result.map((r) => ({
+      tripId: r.tripId,
+      total: r._sum.numPersons ?? 0,
+    }));
   }
 }
