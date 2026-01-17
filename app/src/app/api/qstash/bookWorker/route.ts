@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 
@@ -37,7 +39,7 @@ async function handler(req: Request) {
     console.error("QStash Worker Error:", err);
     return NextResponse.json(
       { ok: false, error: String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
