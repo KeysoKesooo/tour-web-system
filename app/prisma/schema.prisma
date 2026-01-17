@@ -2,9 +2,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// prisma/schema.prisma
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Use the Pooled connection (Port 6543)
+  directUrl = env("DIRECT_URL") // Use the Direct connection (Port 5432)
 }
 
 model User {
@@ -50,7 +52,7 @@ model Booking {
   numPersons Int
   message    String?
   status     BookingStatus @default(PENDING)
-  trip       Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)                                                                     
+  trip       Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
   tripId     String
   createdAt  DateTime      @default(now())
   amountPaid Float         @default(0)
