@@ -1,41 +1,41 @@
-// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { rateLimiter } from "@/lib/redis/rateLimiter";
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const url = new URL(req.url);
   const path = url.pathname;
 
-  // Allow auth and public paths
+  // 1. Skip auth for public and auth-specific routes
   if (path.startsWith("/api/auth") || path.startsWith("/api/public/")) {
     return NextResponse.next();
   }
 
-  // Extract session ID from cookie (or Authorization)
-  const cookieHeader = req.headers.get("cookie");
+  // 2. Extract session safely using Next.js built-in cookie parser
   const session =
-    cookieHeader?.match(/auth_session=([^;]+)/)?.[1] ||
-    (req.headers.get("authorization")?.startsWith("Bearer ")
-      ? req.headers.get("authorization")!.substring(7)
-      : null);
+    req.cookies.get("auth_session")?.value ||
+    req.headers.get("authorization")?.replace("Bearer ", "");
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Unauthorized: No session found" },
+      { status: 401 },
+    );
   }
 
-  // Rate limit by session id
+  // 3. Rate limit check
   const { success } = await rateLimiter.limit(session);
-
   if (!success) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  // forward session id header
+  // 4. Inject session into headers for the API to read
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-session-id", session);
 
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export const config = {

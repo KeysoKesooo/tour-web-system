@@ -1,4 +1,3 @@
-// /lib/requireAdmin.ts
 import { NextRequest } from "next/server";
 import {
   getAuthenticatedUser,
@@ -9,11 +8,14 @@ import {
 
 export async function requireAdmin(req: NextRequest) {
   const auth = await getAuthenticatedUser(req);
-  if (!auth) return unauthorizedResponse();
 
-  if (!hasRole(auth.user, ["ADMIN"])) {
-    return forbiddenResponse("Admins only");
+  if (!auth) {
+    return unauthorizedResponse();
   }
 
-  return auth;
+  if (!hasRole(auth.user, ["ADMIN"])) {
+    return forbiddenResponse("Admin privileges required");
+  }
+
+  return auth; // Returns { user, sessionId } on success
 }

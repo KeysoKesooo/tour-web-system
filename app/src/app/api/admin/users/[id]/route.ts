@@ -5,32 +5,36 @@ import { requireAdmin } from "@/lib/requireAdmin";
 
 const userService = new UserService();
 
+// 1. GET User by ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }, // Updated to Promise
 ) {
   const auth = await requireAdmin(req);
-  if (!auth) return auth;
+  if (auth instanceof NextResponse) return auth;
 
   try {
-    const user = await userService.getUserById(params.id);
+    const { id } = await params; // Await the id
+    const user = await userService.getUserById(id);
     return NextResponse.json({ user });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 404 });
   }
 }
 
+// 2. UPDATE User
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }, // Updated to Promise
 ) {
   const auth = await requireAdmin(req);
-  if (!auth) return auth;
+  if (auth instanceof NextResponse) return auth;
 
   try {
+    const { id } = await params; // Await the id
     const body = await req.json();
     const validated = UpdateUserDTO.parse(body);
-    const updatedUser = await userService.updateProfile(params.id, validated);
+    const updatedUser = await userService.updateProfile(id, validated);
 
     return NextResponse.json({ user: updatedUser });
   } catch (err: any) {
@@ -38,15 +42,17 @@ export async function PUT(
   }
 }
 
+// 3. DELETE User
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }, // Updated to Promise
 ) {
   const auth = await requireAdmin(req);
-  if (!auth) return auth;
+  if (auth instanceof NextResponse) return auth;
 
   try {
-    await userService.deleteUser(params.id);
+    const { id } = await params; // Await the id
+    await userService.deleteUser(id);
     return NextResponse.json({ message: "User deleted successfully" });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

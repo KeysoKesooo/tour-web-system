@@ -28,21 +28,36 @@ export class UserService {
 
   // ------------------- CREATE USER (Write-Behind via QStash) -------------------
   async createUser(data: CreateUserInput): Promise<UserModel> {
-    // Hash password first
+    // 1. Hash password first
     const hashedPassword = await bcrypt.hash(data.password, 10);
-    const payload = { ...data, password: hashedPassword };
 
-    // Enqueue async job
-    await enqueueJob("user-worker", { type: "createUser", payload });
+    // 2. Prepare the data for the database
+    const dbPayload = {
+      ...data,
+      password: hashedPassword,
+    };
 
-    // Optionally return a temporary UserModel (with pending ID or placeholder)
-    return new UserModel({ ...payload, id: "pending" } as any);
+    // 3. 🔑 THE FIX: Save to DB via Repository synchronously
+    // This generates the actual ID and ensures the record exists
+    const savedUser = await this.repo.create(dbPayload);
+
+    console.log("✅ User persisted to DB with ID:", savedUser.id);
+
+    // 4. Enqueue async job (for side effects like emails or logging)
+    // We pass the savedUser so the worker has the real ID
+    await enqueueJob("user-worker", {
+      type: "createUser",
+      payload: savedUser,
+    });
+
+    // 5. Return the real UserModel from the database
+    return new UserModel(savedUser);
   }
 
   // ------------------- UPDATE USER (Invalidate Cache) -------------------
   async updateProfile(
     userId: string,
-    data: UpdateUserInput
+    data: UpdateUserInput,
   ): Promise<UserModel> {
     const updated = await this.repo.update(userId, data);
 
@@ -65,12 +80,18 @@ export class UserService {
 
   // ------------------- DELETE USER (Write-Behind via QStash) -------------------
   async deleteUser(userId: string) {
-    // Enqueue async deletion
+    // 1. 🔑 THE FIX: Call the repository to actually remove from DB
+    // This will trigger the 'prisma:query DELETE' in your terminal
+    await this.repo.delete(userId);
+
+    // 2. Enqueue the job for secondary cleanup tasks
+    // (e.g., removing avatar from S3, cleaning up logs)
     await enqueueJob("user-worker", {
       type: "deleteUser",
       payload: { id: userId },
     });
 
-    return { message: "User deletion scheduled" };
+    // 3. Return a real confirmation
+    return { message: "User successfully deleted" };
   }
 }

@@ -2,51 +2,32 @@ import { NextRequest } from "next/server";
 import { validateSession } from "./auth";
 import { User } from "@prisma/client";
 
-/**
- * Extract and validate session from API route
- * Use this in your API route handlers instead of middleware
- */
 export async function getAuthenticatedUser(
   req: NextRequest,
 ): Promise<{ user: User; sessionId: string } | null> {
-  // Get session ID from middleware-injected header or cookie
-  let sessionId = req.headers.get("x-session-id");
-
-  if (!sessionId) {
-    const cookieHeader = req.headers.get("cookie");
-    if (cookieHeader) {
-      const match = cookieHeader.match(/auth_session=([^;]+)/);
-      sessionId = match ? match[1] : null;
-    }
-  }
+  // 1. Prioritize Proxy-injected header, then fall back to direct cookie reading
+  let sessionId =
+    req.headers.get("x-session-id") || req.cookies.get("auth_session")?.value;
 
   if (!sessionId) return null;
 
-  // Validate session using Lucia (this runs in Node.js runtime, not Edge)
-  const { user, session } = await validateSession(sessionId);
+  try {
+    // 2. Decode the ID (Next.js 16 sometimes encodes cookie values)
+    const decodedId = decodeURIComponent(sessionId);
 
-  if (!user || !session) return null;
+    const { user, session } = await validateSession(decodedId);
+    if (!user || !session) return null;
 
-  return { user: user as User, sessionId: session.id };
+    return { user: user as User, sessionId: session.id };
+  } catch (error) {
+    console.error("Auth validation failed:", error);
+    return null;
+  }
 }
 
-/**
- * Check if user has required role
- */
-export function hasRole(user: User, allowedRoles: string[]): boolean {
-  return allowedRoles.includes(user.role);
-}
-
-/**
- * Unauthorized response helper
- */
-export function unauthorizedResponse() {
-  return Response.json({ error: "Unauthorized" }, { status: 401 });
-}
-
-/**
- * Forbidden response helper
- */
-export function forbiddenResponse(message = "Access denied") {
-  return Response.json({ error: `Forbidden: ${message}` }, { status: 403 });
-}
+export const hasRole = (user: User, allowedRoles: string[]) =>
+  allowedRoles.includes(user.role);
+export const unauthorizedResponse = () =>
+  Response.json({ error: "Invalid token" }, { status: 401 });
+export const forbiddenResponse = (msg = "Access denied") =>
+  Response.json({ error: msg }, { status: 403 });

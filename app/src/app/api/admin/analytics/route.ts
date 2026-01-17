@@ -1,27 +1,36 @@
-// src/app/api/admin/analytics/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { AnalyticsService } from "@/core/services/AnalyticsService";
+import { requireAdmin } from "@/lib/requireAdmin";
+
+// Next.js 16: Ensure this route is always fresh at request time
 export const dynamic = "force-dynamic";
 
-import { NextResponse } from "next/server";
-import { AnalyticsService } from "@/core/services/AnalyticsService";
+export async function GET(req: NextRequest) {
+  // 1. Security Check: Protect sensitive dashboard data
+  const auth = await requireAdmin(req);
+  if (auth instanceof NextResponse) return auth;
 
-export async function GET() {
   try {
-    // ✅ MOVE THIS INSIDE:
+    // 2. Initialize service inside the handler for clean scope
     const service = new AnalyticsService();
 
-    const latest = await service.getDashboardAnalytics();
-    const totalTrips = await service.getTotalTrips();
-    const mostBooked = await service.getMostBookedTrip();
+    // 3. Fetch analytics data in parallel for better performance
+    const [latest, totalTrips, mostBooked] = await Promise.all([
+      service.getDashboardAnalytics(),
+      service.getTotalTrips(),
+      service.getMostBookedTrip(),
+    ]);
 
     return NextResponse.json({
       latest,
       totalTrips,
       mostBookedTrip: mostBooked,
     });
-  } catch (error) {
-    console.error("Analytics Error:", error);
+  } catch (error: any) {
+    console.error("Analytics API Error:", error.message);
+
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "An error occurred while generating analytics." },
       { status: 500 },
     );
   }

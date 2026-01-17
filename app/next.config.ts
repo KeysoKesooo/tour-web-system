@@ -1,14 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // This allows the build to finish even if there are linting errors
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // This allows the build to finish even if there are TypeScript errors
   typescript: {
+    // Keep this if you want to bypass type errors for now
     ignoreBuildErrors: true,
   },
+  // DELETE the entire eslint: { ... } block from here
 };
 
 export default nextConfig;

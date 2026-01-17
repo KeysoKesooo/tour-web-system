@@ -1,5 +1,3 @@
-// src/app/api/public/trip/[id]/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { TripService } from "@/core/services/TripService";
 
@@ -11,21 +9,20 @@ const tripService = new TripService();
  */
 export async function GET(
   request: NextRequest,
-  // Destructure 'params' directly from the second argument
-  { params }: { params: { id: string } }
+  // 1. In Next.js 16, params is a Promise
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  // 🔑 FIX APPLIED: Access the 'id' property directly from the destructured 'params' object.
-  // If the error persists, the solution is usually found by simplifying the argument definition.
-  const { id } = params;
-
-  if (!id) {
-    return NextResponse.json(
-      { error: "Trip ID is required." },
-      { status: 400 }
-    );
-  }
-
   try {
+    // 2. Await the params before accessing the id
+    const { id } = await params;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Trip ID is required." },
+        { status: 400 },
+      );
+    }
+
     const trip = await tripService.getTripById(id);
 
     if (!trip) {
@@ -42,19 +39,17 @@ export async function GET(
       startDate: trip.startDate,
       endDate: trip.endDate,
       remainingSeats: trip.remainingSeats,
+      // Note: check if you need to add imageUrl or capacity here too!
     };
 
     return NextResponse.json(responseData);
   } catch (error: any) {
-    console.error(`Public Trip API Error for ID ${id}:`, error.message);
+    // Note: Use a generic message for the catch block since 'id' might be the thing that failed
+    console.error(`Public Trip API Error:`, error.message);
 
-    // ... (error handling) ...
     return NextResponse.json(
       { error: "Failed to fetch trip details." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-// NOTE: If the error still occurs, try restarting your development server,
-// as Next.js caches module resolution heavily.
