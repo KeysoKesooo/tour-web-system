@@ -1,4 +1,5 @@
 // src/lib/apiClient.ts
+
 export class ApiClient {
   private baseUrl: string;
   private token?: string;
@@ -16,7 +17,6 @@ export class ApiClient {
     return headers;
   }
 
-  // Enhanced fetch with credentials for cookie support
   private async request(path: string, options: RequestInit = {}) {
     const res = await fetch(`${this.baseUrl}${path}`, {
       ...options,
@@ -24,13 +24,19 @@ export class ApiClient {
         ...this.headers,
         ...options.headers,
       },
-      credentials: "include", // ✅ Include cookies in requests
+      credentials: "include",
     });
 
-    // Handle non-OK responses
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: "Unknown error" }));
-      throw new ApiError(error.error || `HTTP ${res.status}`, res.status, error);
+      const errorData = await res
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      // Pass the error status and data to our custom error class
+      throw new ApiError(
+        errorData.error || `HTTP ${res.status}`,
+        res.status,
+        errorData,
+      );
     }
 
     return res.json();
@@ -65,25 +71,29 @@ export class ApiClient {
     return this.request(path, { method: "DELETE" });
   }
 
-  // ✅ Update token dynamically (useful for Bearer token scenarios)
   setToken(token: string) {
     this.token = token;
   }
 
-  // ✅ Clear token
   clearToken() {
     this.token = undefined;
   }
 }
 
-// Custom error class for better error handling
+// FIX: Changed 'any' to 'unknown' to satisfy ESLint
 export class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-    public data?: any
-  ) {
+  public status: number;
+  public data?: unknown; // Use 'unknown' instead of 'any'
+
+  constructor(message: string, status: number, data?: unknown) {
     super(message);
     this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+
+    // Standard fix for maintaining stack traces in custom errors
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ApiError);
+    }
   }
 }

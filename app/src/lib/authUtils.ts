@@ -7,7 +7,7 @@ import { User } from "@prisma/client";
  * Use this in your API route handlers instead of middleware
  */
 export async function getAuthenticatedUser(
-  req: NextRequest
+  req: NextRequest,
 ): Promise<{ user: User; sessionId: string } | null> {
   // Get session ID from middleware-injected header or cookie
   let sessionId = req.headers.get("x-session-id");
